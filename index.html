@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ドライバー・クレーム管理システム</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+    margin: 0;
+  }
+
+  /* レイアウト */
+  .flex { display: flex; }
+  .inline-flex { display: inline-flex; }
+  .grid { display: grid; }
+  .hidden { display: none !important; }
+  .block { display: block; }
+  .flex-col { flex-direction: column; }
+  .flex-1 { flex: 1 1 0%; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .justify-center { justify-content: center; }
+  .justify-end { justify-content: flex-end; }
+  .h-screen { height: 100vh; }
+  .w-full { width: 100%; }
+  .w-64 { width: 16rem; }
+  .max-w-md { max-width: 28rem; }
+  .max-w-lg { max-width: 32rem; }
+  .overflow-hidden { overflow: hidden; }
+  .overflow-y-auto { overflow-y: auto; }
+  .fixed { position: fixed; }
+  .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+  .z-50 { z-index: 50; }
+  .cursor-pointer { cursor: pointer; }
+  .col-span-3 { grid-column: span 3 / span 3; }
+  .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .gap-4 { gap: 1rem; }
+  .gap-6 { gap: 1.5rem; }
+
+  /* 間隔 */
+  .p-1 { padding: 0.25rem; }
+  .p-2 { padding: 0.5rem; }
+  .p-3 { padding: 0.75rem; }
+  .p-4 { padding: 1rem; }
+  .p-6 { padding: 1.5rem; }
+  .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+  .px-4 { padding-left: 1rem; padding-right: 1rem; }
+  .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+  .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+  .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+  .pb-2 { padding-bottom: 0.5rem; }
+  .mb-4 { margin-bottom: 1rem; }
+  .mb-6 { margin-bottom: 1.5rem; }
+  .ml-2 { margin-left: 0.5rem; }
+  .mt-1 { margin-top: 0.25rem; }
+  .mt-2 { margin-top: 0.5rem; }
+  .mt-6 { margin-top: 1.5rem; }
+  .space-x-2 > * + * { margin-left: 0.5rem; }
+  .space-x-4 > * + * { margin-left: 1rem; }
+  .space-y-2 > * + * { margin-top: 0.5rem; }
+  .space-y-4 > * + * { margin-top: 1rem; }
+  .space-y-6 > * + * { margin-top: 1.5rem; }
+
+  /* 文字 */
+  .text-left { text-align: left; }
+  .text-xs { font-size: 0.75rem; }
+  .text-sm { font-size: 0.875rem; }
+  .text-md { font-size: 1rem; }
+  .text-lg { font-size: 1.125rem; }
+  .text-xl { font-size: 1.25rem; }
+  .text-3xl { font-size: 1.875rem; }
+  .font-medium { font-weight: 500; }
+  .font-semibold { font-weight: 600; }
+  .font-bold { font-weight: 700; }
+  .hover\:underline:hover { text-decoration: underline; }
+
+  /* 色 */
+  .bg-white { background-color: #ffffff; }
+  .bg-black { background-color: #000000; }
+  .bg-gray-50 { background-color: #f9fafb; }
+  .bg-gray-100 { background-color: #f3f4f6; }
+  .bg-slate-800 { background-color: #1e293b; }
+  .bg-blue-600 { background-color: #2563eb; }
+  .bg-red-500 { background-color: #ef4444; }
+  .bg-opacity-50 { opacity: 1; background-color: rgba(0,0,0,0.5); }
+  .hover\:bg-gray-50:hover { background-color: #f9fafb; }
+  .hover\:bg-slate-700:hover { background-color: #334155; }
+  .hover\:bg-red-600:hover { background-color: #dc2626; }
+  .text-white { color: #ffffff; }
+  .text-gray-400 { color: #9ca3af; }
+  .text-gray-500 { color: #6b7280; }
+  .text-gray-700 { color: #374151; }
+  .text-gray-800 { color: #1f2937; }
+  .text-slate-400 { color: #94a3b8; }
+  .text-blue-300 { color: #93c5fd; }
+  .text-blue-600 { color: #2563eb; }
+  .text-red-600 { color: #dc2626; }
+  .text-yellow-600 { color: #ca8a04; }
+  .border { border: 1px solid #d1d5db; }
+  .border-t { border-top: 1px solid #e5e7eb; }
+  .border-b { border-bottom: 1px solid #e5e7eb; }
+  .border-gray-300 { border-color: #d1d5db; }
+  .border-slate-700 { border-color: #334155; }
+  .border-collapse { border-collapse: collapse; }
+  .rounded { border-radius: 0.25rem; }
+  .rounded-md { border-radius: 0.375rem; }
+  .rounded-lg { border-radius: 0.5rem; }
+  .shadow { box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1); }
+  .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+  .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); }
+  .transition { transition: all 0.15s ease; }
+
+  input, select, textarea {
+    font-family: inherit;
+    font-size: 0.875rem;
+  }
+
+  .tab-btn { background: none; border: none; font-family: inherit; font-size: 0.875rem; cursor: pointer; }
+  .tab-btn.active { background-color: #2563eb; color: #ffffff; }
+</style>
+</head>
+<body class="bg-gray-100 flex h-screen overflow-hidden">
+
+<!-- 初回設定モーダル -->
+<div id="setupModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+    <h2 class="text-lg font-bold mb-4">初回設定</h2>
+    <label class="block text-sm font-medium text-gray-700">担当者名</label>
+    <input id="setupStaffName" type="text" class="mt-1 mb-4 block w-full border border-gray-300 rounded-md p-2" placeholder="例 サポート担当A">
+    <label class="block text-sm font-medium text-gray-700">API URL（GAS ウェブアプリURL）</label>
+    <input id="setupApiUrl" type="text" class="mt-1 mb-4 block w-full border border-gray-300 rounded-md p-2" placeholder="https://script.google.com/macros/s/.../exec">
+    <button id="setupSaveBtn" class="w-full bg-blue-600 text-white py-2 rounded font-bold">保存して開始</button>
+  </div>
+</div>
+
+<!-- サイドバー -->
+<aside class="w-64 bg-slate-800 text-white flex flex-col">
+  <div class="p-6 text-xl font-bold border-b border-slate-700">管理システム</div>
+  <nav class="flex-1 p-4 space-y-2">
+    <button data-tab="dashboard" class="tab-btn active w-full text-left block p-3 rounded transition">ダッシュボード</button>
+    <button data-tab="drivers" class="tab-btn w-full text-left block p-3 rounded hover:bg-slate-700 transition">ドライバー検索</button>
+    <button data-tab="complaints" class="tab-btn w-full text-left block p-3 rounded hover:bg-slate-700 transition">クレーム一覧</button>
+    <button data-tab="stats" class="tab-btn w-full text-left block p-3 rounded hover:bg-slate-700 transition">統計レポート</button>
+  </nav>
+  <div class="p-4 border-t border-slate-700 text-sm text-slate-400">
+    ログイン中: <span id="staffNameLabel">未設定</span>
+    <button id="changeStaffBtn" class="block mt-2 text-xs text-blue-300 hover:underline">担当者を変更</button>
+  </div>
+</aside>
+
+<!-- メイン -->
+<main class="flex-1 flex flex-col overflow-hidden">
+  <header class="bg-white shadow-sm p-4 flex justify-between items-center">
+    <h1 id="pageTitle" class="text-xl font-semibold text-gray-800">ダッシュボード</h1>
+    <div class="space-x-2">
+      <button id="refreshBtn" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">最新に更新</button>
+      <button id="newComplaintBtn" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 font-medium">新規クレーム登録</button>
+    </div>
+  </header>
+
+  <div class="flex-1 overflow-y-auto p-6 space-y-6">
+
+    <!-- ダッシュボード -->
+    <div id="tab-dashboard" class="tab-content space-y-6">
+      <div class="grid grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow p-4">
+          <p class="text-sm text-gray-500">クレーム総数</p>
+          <p id="statTotal" class="text-3xl font-bold">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+          <p class="text-sm text-gray-500">未対応</p>
+          <p id="statOpen" class="text-3xl font-bold text-red-600">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+          <p class="text-sm text-gray-500">対応中</p>
+          <p id="statProgress" class="text-3xl font-bold text-yellow-600">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+          <p class="text-sm text-gray-500">重要度 高</p>
+          <p id="statHigh" class="text-3xl font-bold text-red-600">0</p>
+        </div>
+      </div>
+      <section class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-bold border-b pb-2 mb-4">直近のクレーム</h2>
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="p-3 border-b">受付日時</th>
+              <th class="p-3 border-b">ドライバー</th>
+              <th class="p-3 border-b">種別</th>
+              <th class="p-3 border-b">重要度</th>
+              <th class="p-3 border-b">ステータス</th>
+            </tr>
+          </thead>
+          <tbody id="recentComplaintsBody"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- ドライバー検索 -->
+    <div id="tab-drivers" class="tab-content hidden space-y-6">
+      <section class="bg-white rounded-lg shadow p-6">
+        <input id="driverSearchInput" type="text" placeholder="氏名またはドライバーIDで検索" class="w-full border border-gray-300 rounded-md p-2 mb-4">
+        <div id="driverListArea" class="grid grid-cols-3 gap-4"></div>
+      </section>
+      <section id="driverDetailSection" class="bg-white rounded-lg shadow p-6 hidden">
+        <h2 class="text-lg font-bold border-b pb-2 mb-4">ドライバー詳細</h2>
+        <div id="driverDetailArea" class="grid grid-cols-3 gap-6 mb-6"></div>
+        <h3 class="text-md font-bold border-b pb-2 mb-4">このドライバーのクレーム履歴</h3>
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="p-3 border-b">受付日時</th>
+              <th class="p-3 border-b">種別</th>
+              <th class="p-3 border-b">内容概要</th>
+              <th class="p-3 border-b">重要度</th>
+              <th class="p-3 border-b">ステータス</th>
+              <th class="p-3 border-b">操作</th>
+            </tr>
+          </thead>
+          <tbody id="driverComplaintsBody"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- クレーム一覧 -->
+    <div id="tab-complaints" class="tab-content hidden space-y-6">
+      <section class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-bold flex-1">クレーム・トラブル履歴（全件）</h2>
+          <select id="statusFilter" class="border rounded px-2 py-1 text-sm">
+            <option value="">全ステータス</option>
+            <option value="未対応">未対応</option>
+            <option value="対応中">対応中</option>
+            <option value="完了">完了</option>
+          </select>
+        </div>
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="p-3 border-b">受付日時</th>
+              <th class="p-3 border-b">ドライバー</th>
+              <th class="p-3 border-b">種別</th>
+              <th class="p-3 border-b">内容概要</th>
+              <th class="p-3 border-b">重要度</th>
+              <th class="p-3 border-b">ステータス</th>
+              <th class="p-3 border-b">登録者</th>
+              <th class="p-3 border-b">操作</th>
+            </tr>
+          </thead>
+          <tbody id="allComplaintsBody"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- 統計レポート -->
+    <div id="tab-stats" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-2 gap-6">
+        <section class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-bold border-b pb-2 mb-4">種別ごとの件数</h2>
+          <div id="statsByCategory" class="space-y-2 text-sm"></div>
+        </section>
+        <section class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-bold border-b pb-2 mb-4">重要度ごとの件数</h2>
+          <div id="statsBySeverity" class="space-y-2 text-sm"></div>
+        </section>
+      </div>
+      <section class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-bold border-b pb-2 mb-4">ドライバーごとの件数</h2>
+        <div id="statsByDriver" class="space-y-2 text-sm"></div>
+      </section>
+    </div>
+
+  </div>
+</main>
+
+<!-- 新規クレーム登録モーダル -->
+<div id="complaintModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
+    <h2 class="text-lg font-bold mb-4">新規クレーム登録</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">対象ドライバー</label>
+        <select id="formDriverId" class="mt-1 block w-full border border-gray-300 rounded-md p-2"></select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">発生日時</label>
+        <input id="formOccurredAt" type="datetime-local" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">クレーム種別</label>
+        <select id="formCategory" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
+          <option>接客マナー</option>
+          <option>安全運転</option>
+          <option>遅延</option>
+          <option>その他</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">内容詳細</label>
+        <textarea id="formDetail" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="具体的な状況を記載してください"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">重要度</label>
+        <div class="mt-2 space-x-4">
+          <label class="inline-flex items-center"><input type="radio" name="formSeverity" value="低" class="text-blue-600"> <span class="ml-2">低</span></label>
+          <label class="inline-flex items-center"><input type="radio" name="formSeverity" value="中" class="text-blue-600" checked> <span class="ml-2">中</span></label>
+          <label class="inline-flex items-center"><input type="radio" name="formSeverity" value="高" class="text-blue-600"> <span class="ml-2">高</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end space-x-2 mt-6">
+      <button id="complaintCancelBtn" class="px-4 py-2 border border-gray-300 rounded">キャンセル</button>
+      <button id="complaintSubmitBtn" class="px-6 py-2 bg-blue-600 text-white rounded font-bold">登録する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var API_URL = '';
+var STAFF_NAME = '';
+var driversData = [];
+var complaintsData = [];
+var currentDriverId = null;
+
+function init() {
+  API_URL = localStorage.getItem('claim_api_url') || '';
+  STAFF_NAME = localStorage.getItem('claim_staff_name') || '';
+  if (!API_URL || !STAFF_NAME) {
+    document.getElementById('setupModal').classList.remove('hidden');
+  } else {
+    document.getElementById('staffNameLabel').textContent = STAFF_NAME;
+    loadAll();
+  }
+}
+
+document.getElementById('setupSaveBtn').addEventListener('click', function () {
+  var name = document.getElementById('setupStaffName').value.trim();
+  var url = document.getElementById('setupApiUrl').value.trim();
+  if (!name || !url) {
+    alert('担当者名とAPI URLの両方を入力してください');
+    return;
+  }
+  localStorage.setItem('claim_staff_name', name);
+  localStorage.setItem('claim_api_url', url);
+  API_URL = url;
+  STAFF_NAME = name;
+  document.getElementById('staffNameLabel').textContent = name;
+  document.getElementById('setupModal').classList.add('hidden');
+  loadAll();
+});
+
+document.getElementById('changeStaffBtn').addEventListener('click', function () {
+  document.getElementById('setupStaffName').value = STAFF_NAME;
+  document.getElementById('setupApiUrl').value = API_URL;
+  document.getElementById('setupModal').classList.remove('hidden');
+});
+
+// タブ切り替え
+var tabTitles = {
+  dashboard: 'ダッシュボード',
+  drivers: 'ドライバー検索',
+  complaints: 'クレーム一覧',
+  stats: '統計レポート'
+};
+document.querySelectorAll('.tab-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var tab = btn.getAttribute('data-tab');
+    document.querySelectorAll('.tab-content').forEach(function (c) { c.classList.add('hidden'); });
+    document.getElementById('tab-' + tab).classList.remove('hidden');
+    document.getElementById('pageTitle').textContent = tabTitles[tab];
+    if (tab === 'stats') renderStats();
+  });
+});
+
+document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+function loadAll() {
+  fetch(API_URL + '?action=getAll')
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      if (!data.success) {
+        alert('データ取得に失敗しました: ' + (data.message || ''));
+        return;
+      }
+      driversData = data.drivers || [];
+      complaintsData = data.complaints || [];
+      renderDashboard();
+      renderDriverList();
+      renderAllComplaints();
+      populateDriverSelect();
+    })
+    .catch(function (err) {
+      alert('通信エラーが発生しました。API URLの設定を確認してください。');
+      console.error(err);
+    });
+}
+
+function renderDashboard() {
+  document.getElementById('statTotal').textContent = complaintsData.length;
+  document.getElementById('statOpen').textContent = complaintsData.filter(function (c) { return c['ステータス'] === '未対応'; }).length;
+  document.getElementById('statProgress').textContent = complaintsData.filter(function (c) { return c['ステータス'] === '対応中'; }).length;
+  document.getElementById('statHigh').textContent = complaintsData.filter(function (c) { return c['重要度'] === '高'; }).length;
+
+  var sorted = complaintsData.slice().sort(function (a, b) {
+    return new Date(b['受付日時']) - new Date(a['受付日時']);
+  }).slice(0, 5);
+
+  var body = document.getElementById('recentComplaintsBody');
+  body.innerHTML = sorted.map(function (c) {
+    var driver = driversData.find(function (d) { return d['ID'] === c['ドライバーID']; });
+    return '<tr class="hover:bg-gray-50">' +
+      '<td class="p-3 border-b">' + formatDate(c['受付日時']) + '</td>' +
+      '<td class="p-3 border-b">' + (driver ? driver['名前'] : c['ドライバーID']) + '</td>' +
+      '<td class="p-3 border-b">' + c['種別'] + '</td>' +
+      '<td class="p-3 border-b">' + severityBadge(c['重要度']) + '</td>' +
+      '<td class="p-3 border-b">' + statusBadge(c['ステータス']) + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function severityBadge(sev) {
+  var color = sev === '高' ? 'text-red-600' : sev === '中' ? 'text-yellow-600' : 'text-blue-600';
+  return '<span class="font-bold ' + color + '">' + sev + '</span>';
+}
+
+function statusBadge(status) {
+  var cls = status === '未対応' ? 'bg-red-100 text-red-800' : status === '対応中' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800';
+  return '<span class="px-2 py-1 ' + cls + ' rounded text-xs">' + status + '</span>';
+}
+
+function formatDate(v) {
+  if (!v) return '';
+  var d = new Date(v);
+  if (isNaN(d.getTime())) return v;
+  return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
+    ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+}
+
+// ドライバー検索
+document.getElementById('driverSearchInput').addEventListener('input', renderDriverList);
+
+function renderDriverList() {
+  var keyword = document.getElementById('driverSearchInput').value.trim();
+  var filtered = driversData.filter(function (d) {
+    return !keyword ||
+      String(d['名前'] || '').includes(keyword) ||
+      String(d['ID'] || '').includes(keyword) ||
+      String(d['企業名'] || '').includes(keyword);
+  });
+  var area = document.getElementById('driverListArea');
+  area.innerHTML = filtered.map(function (d) {
+    return '<div class="border rounded-lg p-4 cursor-pointer hover:bg-gray-50" onclick="showDriverDetail(\'' + d['ID'] + '\')">' +
+      '<p class="font-bold">' + d['名前'] + '</p>' +
+      '<p class="text-sm text-gray-500">' + d['ID'] + '</p>' +
+      '<p class="text-sm">' + (d['アカウントステータス'] || '') + '</p>' +
+      '</div>';
+  }).join('') || '<p class="text-gray-400 col-span-3">該当するドライバーがいません</p>';
+}
+
+function showDriverDetail(driverId) {
+  currentDriverId = driverId;
+  var d = driversData.find(function (x) { return String(x['ID']) === String(driverId); });
+  if (!d) return;
+  document.getElementById('driverDetailSection').classList.remove('hidden');
+  document.getElementById('driverDetailArea').innerHTML =
+    field('名前', d['名前']) + field('ID', d['ID']) +
+    field('アカウントステータス', d['アカウントステータス']) + field('電話番号', d['電話番号']) +
+    field('メールアドレス', d['メールアドレス']) + field('登録日時', formatDate(d['登録日時'])) +
+    field('最終ログイン日時', formatDate(d['最終ログイン日時']));
+
+  var related = complaintsData.filter(function (c) { return String(c['ドライバーID']) === String(driverId); })
+    .sort(function (a, b) { return new Date(b['受付日時']) - new Date(a['受付日時']); });
+
+  document.getElementById('driverComplaintsBody').innerHTML = related.map(complaintRow).join('') ||
+    '<tr><td class="p-3 text-gray-400" colspan="6">クレーム履歴はありません</td></tr>';
+}
+
+function field(label, value) {
+  return '<div><p class="text-sm text-gray-500">' + label + '</p><p class="font-medium text-lg">' + (value || '') + '</p></div>';
+}
+
+function complaintRow(c) {
+  return '<tr class="hover:bg-gray-50">' +
+    '<td class="p-3 border-b">' + formatDate(c['受付日時']) + '</td>' +
+    '<td class="p-3 border-b">' + c['種別'] + '</td>' +
+    '<td class="p-3 border-b">' + c['内容詳細'] + '</td>' +
+    '<td class="p-3 border-b">' + severityBadge(c['重要度']) + '</td>' +
+    '<td class="p-3 border-b">' + statusBadge(c['ステータス']) + '</td>' +
+    '<td class="p-3 border-b">' + statusChangeButtons(c['ID'], c['ステータス']) + '</td>' +
+    '</tr>';
+}
+
+function statusChangeButtons(id, current) {
+  var options = ['未対応', '対応中', '完了'];
+  var opts = options.map(function (o) {
+    return '<option value="' + o + '"' + (o === current ? ' selected' : '') + '>' + o + '</option>';
+  }).join('');
+  return '<select onchange="changeStatus(\'' + id + '\', this.value)" class="border rounded text-xs p-1">' + opts + '</select>';
+}
+
+function changeStatus(id, status) {
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'updateComplaintStatus', data: { id: id, status: status } })
+  }).then(function (res) { return res.json(); })
+    .then(function (data) {
+      if (data.success) {
+        loadAll();
+      } else {
+        alert('更新に失敗しました: ' + (data.message || ''));
+      }
+    });
+}
+
+// クレーム一覧
+document.getElementById('statusFilter').addEventListener('change', renderAllComplaints);
+
+function renderAllComplaints() {
+  var status = document.getElementById('statusFilter').value;
+  var filtered = complaintsData.filter(function (c) { return !status || c['ステータス'] === status; })
+    .sort(function (a, b) { return new Date(b['受付日時']) - new Date(a['受付日時']); });
+
+  document.getElementById('allComplaintsBody').innerHTML = filtered.map(function (c) {
+    var driver = driversData.find(function (d) { return String(d['ID']) === String(c['ドライバーID']); });
+    return '<tr class="hover:bg-gray-50">' +
+      '<td class="p-3 border-b">' + formatDate(c['受付日時']) + '</td>' +
+      '<td class="p-3 border-b">' + (driver ? driver['名前'] : c['ドライバーID']) + '</td>' +
+      '<td class="p-3 border-b">' + c['種別'] + '</td>' +
+      '<td class="p-3 border-b">' + c['内容詳細'] + '</td>' +
+      '<td class="p-3 border-b">' + severityBadge(c['重要度']) + '</td>' +
+      '<td class="p-3 border-b">' + statusBadge(c['ステータス']) + '</td>' +
+      '<td class="p-3 border-b">' + (c['登録者'] || '') + '</td>' +
+      '<td class="p-3 border-b">' + statusChangeButtons(c['ID'], c['ステータス']) + '</td>' +
+      '</tr>';
+  }).join('') || '<tr><td class="p-3 text-gray-400" colspan="8">該当するクレームはありません</td></tr>';
+}
+
+// 統計レポート
+function renderStats() {
+  renderStatBlock('statsByCategory', groupCount(complaintsData, '種別'));
+  renderStatBlock('statsBySeverity', groupCount(complaintsData, '重要度'));
+  var driverCounts = {};
+  complaintsData.forEach(function (c) {
+    var driver = driversData.find(function (d) { return String(d['ID']) === String(c['ドライバーID']); });
+    var label = driver ? driver['名前'] : c['ドライバーID'];
+    driverCounts[label] = (driverCounts[label] || 0) + 1;
+  });
+  renderStatBlockFromObj('statsByDriver', driverCounts);
+}
+
+function groupCount(arr, key) {
+  var result = {};
+  arr.forEach(function (item) {
+    var k = item[key] || '未分類';
+    result[k] = (result[k] || 0) + 1;
+  });
+  return result;
+}
+
+function renderStatBlock(elementId, obj) {
+  renderStatBlockFromObj(elementId, obj);
+}
+
+function renderStatBlockFromObj(elementId, obj) {
+  var el = document.getElementById(elementId);
+  var entries = Object.keys(obj).map(function (k) { return [k, obj[k]]; })
+    .sort(function (a, b) { return b[1] - a[1]; });
+  el.innerHTML = entries.map(function (e) {
+    return '<div class="flex justify-between border-b py-1"><span>' + e[0] + '</span><span class="font-bold">' + e[1] + '件</span></div>';
+  }).join('') || '<p class="text-gray-400">データがありません</p>';
+}
+
+// 新規クレーム登録モーダル
+document.getElementById('newComplaintBtn').addEventListener('click', function () {
+  document.getElementById('complaintModal').classList.remove('hidden');
+  if (currentDriverId) {
+    document.getElementById('formDriverId').value = currentDriverId;
+  }
+});
+document.getElementById('complaintCancelBtn').addEventListener('click', function () {
+  document.getElementById('complaintModal').classList.add('hidden');
+});
+
+function populateDriverSelect() {
+  var select = document.getElementById('formDriverId');
+  select.innerHTML = driversData.map(function (d) {
+    return '<option value="' + d['ID'] + '">' + d['名前'] + '（' + d['ID'] + '）</option>';
+  }).join('');
+}
+
+document.getElementById('complaintSubmitBtn').addEventListener('click', function () {
+  var driverId = document.getElementById('formDriverId').value;
+  var occurredAt = document.getElementById('formOccurredAt').value;
+  var category = document.getElementById('formCategory').value;
+  var detail = document.getElementById('formDetail').value.trim();
+  var severityInput = document.querySelector('input[name="formSeverity"]:checked');
+
+  if (!driverId || !occurredAt || !detail || !severityInput) {
+    alert('全ての項目を入力してください');
+    return;
+  }
+
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({
+      action: 'addComplaint',
+      data: {
+        driverId: driverId,
+        occurredAt: occurredAt,
+        category: category,
+        detail: detail,
+        severity: severityInput.value,
+        registeredBy: STAFF_NAME
+      }
+    })
+  }).then(function (res) { return res.json(); })
+    .then(function (data) {
+      if (data.success) {
+        document.getElementById('complaintModal').classList.add('hidden');
+        document.getElementById('formDetail').value = '';
+        loadAll();
+      } else {
+        alert('登録に失敗しました: ' + (data.message || ''));
+      }
+    })
+    .catch(function (err) {
+      alert('通信エラーが発生しました');
+      console.error(err);
+    });
+});
+
+// 定期的に自動更新し、他の担当者の更新を反映する
+setInterval(function () {
+  if (API_URL) loadAll();
+}, 30000);
+
+init();
+</script>
+</body>
+</html>
