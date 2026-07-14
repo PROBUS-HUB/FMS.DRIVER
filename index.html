@@ -681,6 +681,15 @@ function selectFormDriver(driverId) {
   document.getElementById('formDriverSuggestions').classList.add('hidden');
 }
 
+function isWithinPastMonths(dateValue, months) {
+  if (!dateValue) return false;
+  var d = new Date(dateValue);
+  if (isNaN(d.getTime())) return false;
+  var threshold = new Date();
+  threshold.setMonth(threshold.getMonth() - months);
+  return d >= threshold;
+}
+
 function setupCaseAutocomplete() {
   var input = document.getElementById('formCaseSearchInput');
   var suggestions = document.getElementById('formCaseSuggestions');
@@ -694,7 +703,12 @@ function setupCaseAutocomplete() {
       suggestions.innerHTML = '';
       return;
     }
-    var matches = casesData.filter(function (c) {
+    // 検索候補は直近3か月に登録された案件のみを対象とする
+    // （記録済みのクレームと案件詳細は、この絞り込みの影響を受けず引き続き参照できる）
+    var recentCases = casesData.filter(function (c) {
+      return isWithinPastMonths(c['陸送案件登録日時'], 3);
+    });
+    var matches = recentCases.filter(function (c) {
       return String(c['案件ID'] || '').includes(keyword) ||
         String(c['店舗名'] || '').includes(keyword) ||
         String(c['陸送先'] || '').includes(keyword) ||
@@ -702,7 +716,7 @@ function setupCaseAutocomplete() {
     }).slice(0, 10);
 
     if (matches.length === 0) {
-      suggestions.innerHTML = '<div class="p-2 text-sm text-gray-400">該当する案件がありません</div>';
+      suggestions.innerHTML = '<div class="p-2 text-sm text-gray-400">直近3か月以内に該当する案件がありません</div>';
     } else {
       suggestions.innerHTML = matches.map(function (c) {
         return '<div class="p-2 text-sm cursor-pointer hover:bg-gray-50" onclick="selectFormCase(\'' + c['案件ID'] + '\')">' +
