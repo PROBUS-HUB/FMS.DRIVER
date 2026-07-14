@@ -521,7 +521,7 @@ function showDriverDetail(driverId) {
   if (!d) return;
   document.getElementById('driverDetailSection').classList.remove('hidden');
 
-  var fields = ['名前', 'ID', 'アカウントステータス', '電話番号', 'メールアドレス', '登録日時', '最終ログイン日時'];
+  var fields = ['名前', 'ID', 'アカウントステータス', '電話番号', 'メールアドレス', 'ジョブスキップ数', '登録日時', '最終ログイン日時'];
   document.getElementById('driverDetailHeaderRow').innerHTML = fields.map(function (f) {
     return '<th class="p-3 border bg-gray-50 whitespace-nowrap">' + f + '</th>';
   }).join('');
@@ -553,7 +553,16 @@ function complaintRow(c) {
 
 function caseLink(caseId) {
   if (!caseId) return '<span class="text-gray-400">未設定</span>';
-  return '<button class="text-blue-600 hover:underline" onclick="showCaseDetail(\'' + caseId + '\')">' + caseId + '</button>';
+  var c = casesData.find(function (x) { return String(x['案件ID']) === String(caseId); });
+  var subInfo = '';
+  if (c) {
+    var parts = [];
+    if (c['店舗名']) parts.push(c['店舗名']);
+    if (c['担当者']) parts.push('担当: ' + c['担当者']);
+    subInfo = parts.join('　');
+  }
+  return '<button class="text-blue-600 hover:underline" onclick="showCaseDetail(\'' + caseId + '\')">' + caseId + '</button>' +
+    (subInfo ? '<div class="text-xs text-gray-500 whitespace-nowrap">' + subInfo + '</div>' : '');
 }
 
 function statusChangeButtons(id, current) {
