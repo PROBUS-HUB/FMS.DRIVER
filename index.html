@@ -43,6 +43,11 @@
   .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .driver-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 240px));
+    gap: 1rem;
+  }
   .gap-4 { gap: 1rem; }
   .gap-6 { gap: 1.5rem; }
   .gap-x-10 { column-gap: 2.5rem; }
@@ -213,7 +218,7 @@
     <div id="tab-drivers" class="tab-content hidden space-y-6">
       <section class="bg-white rounded-lg shadow p-6">
         <input id="driverSearchInput" type="text" placeholder="氏名またはドライバーIDで検索" class="w-full border border-gray-300 rounded-md p-2 mb-4">
-        <div id="driverListArea" class="grid grid-cols-3 gap-4"></div>
+        <div id="driverListArea" class="driver-grid"></div>
       </section>
       <section id="driverDetailSection" class="bg-white rounded-lg shadow p-6 hidden">
         <h2 class="text-lg font-bold border-b pb-2 mb-4">ドライバー詳細</h2>
@@ -500,12 +505,12 @@ function renderDriverList() {
   });
   var area = document.getElementById('driverListArea');
   area.innerHTML = filtered.map(function (d) {
-    return '<div class="border rounded-lg p-4 cursor-pointer hover:bg-gray-50" onclick="showDriverDetail(\'' + d['ID'] + '\')">' +
-      '<p class="font-bold">' + d['名前'] + '</p>' +
+    return '<div class="border rounded-lg p-4">' +
+      '<a href="javascript:void(0)" onclick="showDriverDetail(\'' + d['ID'] + '\')" class="font-bold text-blue-600 hover:underline">' + d['名前'] + '</a>' +
       '<p class="text-sm text-gray-500">' + d['ID'] + '</p>' +
       '<p class="text-sm">' + (d['アカウントステータス'] || '') + '</p>' +
       '</div>';
-  }).join('') || '<p class="text-gray-400 col-span-3">該当するドライバーがいません</p>';
+  }).join('') || '<p class="text-gray-400">該当するドライバーがいません</p>';
 }
 
 function showDriverDetail(driverId) {
