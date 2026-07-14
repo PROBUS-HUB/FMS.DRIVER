@@ -26,6 +26,7 @@
   .h-screen { height: 100vh; }
   .w-full { width: 100%; }
   .w-64 { width: 16rem; }
+  .w-40 { width: 10rem; flex-shrink: 0; }
   .max-w-md { max-width: 28rem; }
   .max-w-lg { max-width: 32rem; }
   .overflow-hidden { overflow: hidden; }
@@ -492,7 +493,7 @@ function showDriverDetail(driverId) {
 }
 
 function field(label, value) {
-  return '<div><p class="text-sm text-gray-500">' + label + '</p><p class="font-medium text-lg break-all">' + (value || '') + '</p></div>';
+  return '<div class="flex items-center border-b py-2"><p class="text-sm text-gray-500 w-40">' + label + '</p><p class="font-medium text-lg break-all">' + (value || '') + '</p></div>';
 }
 
 function complaintRow(c) {
