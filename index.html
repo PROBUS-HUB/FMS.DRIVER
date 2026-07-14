@@ -10,6 +10,8 @@
     font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
     margin: 0;
   }
+  p, h1, h2, h3 { margin: 0; }
+  a { text-decoration: none; }
 
   /* レイアウト */
   .flex { display: flex; }
@@ -505,10 +507,10 @@ function renderDriverList() {
   });
   var area = document.getElementById('driverListArea');
   area.innerHTML = filtered.map(function (d) {
-    return '<div class="border rounded-lg p-4">' +
+    return '<div class="border rounded-lg p-3">' +
       '<a href="javascript:void(0)" onclick="showDriverDetail(\'' + d['ID'] + '\')" class="font-bold text-blue-600 hover:underline">' + d['名前'] + '</a>' +
-      '<p class="text-sm text-gray-500">' + d['ID'] + '</p>' +
-      '<p class="text-sm">' + (d['アカウントステータス'] || '') + '</p>' +
+      '<p class="text-sm text-gray-500" style="margin-top:0.25rem;">' + d['ID'] + '</p>' +
+      '<p class="text-sm" style="margin-top:0.25rem;">' + (d['アカウントステータス'] || '') + '</p>' +
       '</div>';
   }).join('') || '<p class="text-gray-400">該当するドライバーがいません</p>';
 }
