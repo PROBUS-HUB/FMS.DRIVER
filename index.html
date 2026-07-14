@@ -219,6 +219,8 @@
               <th class="p-3 border-b">内容概要</th>
               <th class="p-3 border-b">重要度</th>
               <th class="p-3 border-b">ステータス</th>
+              <th class="p-3 border-b">受付担当</th>
+              <th class="p-3 border-b">最終更新担当</th>
               <th class="p-3 border-b">操作</th>
             </tr>
           </thead>
@@ -248,7 +250,8 @@
               <th class="p-3 border-b">内容概要</th>
               <th class="p-3 border-b">重要度</th>
               <th class="p-3 border-b">ステータス</th>
-              <th class="p-3 border-b">登録者</th>
+              <th class="p-3 border-b">受付担当</th>
+              <th class="p-3 border-b">最終更新担当</th>
               <th class="p-3 border-b">操作</th>
             </tr>
           </thead>
@@ -285,7 +288,10 @@
     <div class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700">対象ドライバー</label>
-        <select id="formDriverId" class="mt-1 block w-full border border-gray-300 rounded-md p-2"></select>
+        <input id="formDriverSearchInput" type="text" autocomplete="off" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="名前で検索して選択してください">
+        <div id="formDriverSuggestions" class="hidden border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto"></div>
+        <input type="hidden" id="formDriverId">
+        <p id="formDriverSelected" class="text-sm text-gray-600 mt-1"></p>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700">発生日時</label>
@@ -394,7 +400,6 @@ function loadAll() {
       renderDashboard();
       renderDriverList();
       renderAllComplaints();
-      populateDriverSelect();
     })
     .catch(function (err) {
       alert('通信エラーが発生しました。API URLの設定を確認してください。');
@@ -479,7 +484,7 @@ function showDriverDetail(driverId) {
     .sort(function (a, b) { return new Date(b['受付日時']) - new Date(a['受付日時']); });
 
   document.getElementById('driverComplaintsBody').innerHTML = related.map(complaintRow).join('') ||
-    '<tr><td class="p-3 text-gray-400" colspan="6">クレーム履歴はありません</td></tr>';
+    '<tr><td class="p-3 text-gray-400" colspan="8">クレーム履歴はありません</td></tr>';
 }
 
 function field(label, value) {
@@ -493,6 +498,8 @@ function complaintRow(c) {
     '<td class="p-3 border-b">' + c['内容詳細'] + '</td>' +
     '<td class="p-3 border-b">' + severityBadge(c['重要度']) + '</td>' +
     '<td class="p-3 border-b">' + statusBadge(c['ステータス']) + '</td>' +
+    '<td class="p-3 border-b">' + (c['登録者'] || '') + '</td>' +
+    '<td class="p-3 border-b">' + (c['最終更新者'] || '') + '</td>' +
     '<td class="p-3 border-b">' + statusChangeButtons(c['ID'], c['ステータス']) + '</td>' +
     '</tr>';
 }
@@ -509,7 +516,7 @@ function changeStatus(id, status) {
   fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'updateComplaintStatus', data: { id: id, status: status } })
+    body: JSON.stringify({ action: 'updateComplaintStatus', data: { id: id, status: status, updatedBy: STAFF_NAME } })
   }).then(function (res) { return res.json(); })
     .then(function (data) {
       if (data.success) {
@@ -538,9 +545,10 @@ function renderAllComplaints() {
       '<td class="p-3 border-b">' + severityBadge(c['重要度']) + '</td>' +
       '<td class="p-3 border-b">' + statusBadge(c['ステータス']) + '</td>' +
       '<td class="p-3 border-b">' + (c['登録者'] || '') + '</td>' +
+      '<td class="p-3 border-b">' + (c['最終更新者'] || '') + '</td>' +
       '<td class="p-3 border-b">' + statusChangeButtons(c['ID'], c['ステータス']) + '</td>' +
       '</tr>';
-  }).join('') || '<tr><td class="p-3 text-gray-400" colspan="8">該当するクレームはありません</td></tr>';
+  }).join('') || '<tr><td class="p-3 text-gray-400" colspan="9">該当するクレームはありません</td></tr>';
 }
 
 // 統計レポート
@@ -582,18 +590,49 @@ function renderStatBlockFromObj(elementId, obj) {
 document.getElementById('newComplaintBtn').addEventListener('click', function () {
   document.getElementById('complaintModal').classList.remove('hidden');
   if (currentDriverId) {
-    document.getElementById('formDriverId').value = currentDriverId;
+    selectFormDriver(currentDriverId);
   }
 });
 document.getElementById('complaintCancelBtn').addEventListener('click', function () {
   document.getElementById('complaintModal').classList.add('hidden');
 });
 
-function populateDriverSelect() {
-  var select = document.getElementById('formDriverId');
-  select.innerHTML = driversData.map(function (d) {
-    return '<option value="' + d['ID'] + '">' + d['名前'] + '（' + d['ID'] + '）</option>';
-  }).join('');
+function setupDriverAutocomplete() {
+  var input = document.getElementById('formDriverSearchInput');
+  var suggestions = document.getElementById('formDriverSuggestions');
+
+  input.addEventListener('input', function () {
+    document.getElementById('formDriverId').value = '';
+    document.getElementById('formDriverSelected').textContent = '';
+    var keyword = input.value.trim();
+    if (!keyword) {
+      suggestions.classList.add('hidden');
+      suggestions.innerHTML = '';
+      return;
+    }
+    var matches = driversData.filter(function (d) {
+      return String(d['名前'] || '').includes(keyword) || String(d['ID'] || '').includes(keyword);
+    }).slice(0, 10);
+
+    if (matches.length === 0) {
+      suggestions.innerHTML = '<div class="p-2 text-sm text-gray-400">該当するドライバーがいません</div>';
+    } else {
+      suggestions.innerHTML = matches.map(function (d) {
+        return '<div class="p-2 text-sm cursor-pointer hover:bg-gray-50" onclick="selectFormDriver(\'' + d['ID'] + '\')">' +
+          d['名前'] + '（' + d['ID'] + '）</div>';
+      }).join('');
+    }
+    suggestions.classList.remove('hidden');
+  });
+}
+
+function selectFormDriver(driverId) {
+  var d = driversData.find(function (x) { return String(x['ID']) === String(driverId); });
+  if (!d) return;
+  document.getElementById('formDriverId').value = d['ID'];
+  document.getElementById('formDriverSearchInput').value = d['名前'];
+  document.getElementById('formDriverSelected').textContent = '選択中: ' + d['名前'] + '（' + d['ID'] + '）';
+  document.getElementById('formDriverSuggestions').classList.add('hidden');
 }
 
 document.getElementById('complaintSubmitBtn').addEventListener('click', function () {
@@ -627,6 +666,9 @@ document.getElementById('complaintSubmitBtn').addEventListener('click', function
       if (data.success) {
         document.getElementById('complaintModal').classList.add('hidden');
         document.getElementById('formDetail').value = '';
+        document.getElementById('formDriverSearchInput').value = '';
+        document.getElementById('formDriverId').value = '';
+        document.getElementById('formDriverSelected').textContent = '';
         loadAll();
       } else {
         alert('登録に失敗しました: ' + (data.message || ''));
@@ -643,6 +685,7 @@ setInterval(function () {
   if (API_URL) loadAll();
 }, 30000);
 
+setupDriverAutocomplete();
 init();
 </script>
 </body>
