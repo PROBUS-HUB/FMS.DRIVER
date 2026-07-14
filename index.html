@@ -40,6 +40,8 @@
   .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .gap-4 { gap: 1rem; }
   .gap-6 { gap: 1.5rem; }
+  .gap-x-10 { column-gap: 2.5rem; }
+  .gap-y-5 { row-gap: 1.25rem; }
 
   /* 間隔 */
   .p-1 { padding: 0.25rem; }
@@ -67,6 +69,7 @@
 
   /* 文字 */
   .text-left { text-align: left; }
+  .break-all { word-break: break-all; }
   .text-xs { font-size: 0.75rem; }
   .text-sm { font-size: 0.875rem; }
   .text-md { font-size: 1rem; }
@@ -209,7 +212,7 @@
       </section>
       <section id="driverDetailSection" class="bg-white rounded-lg shadow p-6 hidden">
         <h2 class="text-lg font-bold border-b pb-2 mb-4">ドライバー詳細</h2>
-        <div id="driverDetailArea" class="grid grid-cols-3 gap-6 mb-6"></div>
+        <div id="driverDetailArea" class="grid grid-cols-2 gap-x-10 gap-y-5 mb-6"></div>
         <h3 class="text-md font-bold border-b pb-2 mb-4">このドライバーのクレーム履歴</h3>
         <table class="w-full text-left border-collapse text-sm">
           <thead>
@@ -488,7 +491,7 @@ function showDriverDetail(driverId) {
 }
 
 function field(label, value) {
-  return '<div><p class="text-sm text-gray-500">' + label + '</p><p class="font-medium text-lg">' + (value || '') + '</p></div>';
+  return '<div><p class="text-sm text-gray-500">' + label + '</p><p class="font-medium text-lg break-all">' + (value || '') + '</p></div>';
 }
 
 function complaintRow(c) {
