@@ -29,6 +29,7 @@
   .w-40 { width: 10rem; flex-shrink: 0; }
   .max-w-md { max-width: 28rem; }
   .max-w-lg { max-width: 32rem; }
+  .max-w-4xl { max-width: 56rem; }
   .overflow-hidden { overflow: hidden; }
   .overflow-x-auto { overflow-x: auto; }
   .overflow-y-auto { overflow-y: auto; }
@@ -231,6 +232,7 @@
               <th class="p-3 border-b">内容概要</th>
               <th class="p-3 border-b">重要度</th>
               <th class="p-3 border-b">ステータス</th>
+              <th class="p-3 border-b">案件</th>
               <th class="p-3 border-b">受付担当</th>
               <th class="p-3 border-b">最終更新担当</th>
               <th class="p-3 border-b">操作</th>
@@ -262,6 +264,7 @@
               <th class="p-3 border-b">内容概要</th>
               <th class="p-3 border-b">重要度</th>
               <th class="p-3 border-b">ステータス</th>
+              <th class="p-3 border-b">案件</th>
               <th class="p-3 border-b">受付担当</th>
               <th class="p-3 border-b">最終更新担当</th>
               <th class="p-3 border-b">操作</th>
@@ -298,6 +301,13 @@
   <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
     <h2 class="text-lg font-bold mb-4">新規クレーム登録</h2>
     <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">対象案件</label>
+        <input id="formCaseSearchInput" type="text" autocomplete="off" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="案件ID・店舗名・陸送先などで検索">
+        <div id="formCaseSuggestions" class="hidden border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto"></div>
+        <input type="hidden" id="formCaseId">
+        <p id="formCaseSelected" class="text-sm text-gray-600 mt-1"></p>
+      </div>
       <div>
         <label class="block text-sm font-medium text-gray-700">対象ドライバー</label>
         <input id="formDriverSearchInput" type="text" autocomplete="off" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="名前で検索して選択してください">
@@ -338,11 +348,27 @@
   </div>
 </div>
 
+<!-- 案件詳細モーダル -->
+<div id="caseDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-bold">案件詳細</h2>
+      <button id="caseDetailCloseBtn" class="px-3 py-1 border border-gray-300 rounded">閉じる</button>
+    </div>
+    <div class="overflow-x-auto" style="max-height: 70vh; overflow-y: auto;">
+      <table class="border-collapse text-sm">
+        <tbody id="caseDetailBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script>
 var API_URL = '';
 var STAFF_NAME = '';
 var driversData = [];
 var complaintsData = [];
+var casesData = [];
 var currentDriverId = null;
 
 function init() {
@@ -409,6 +435,7 @@ function loadAll() {
       }
       driversData = data.drivers || [];
       complaintsData = data.complaints || [];
+      casesData = data.cases || [];
       renderDashboard();
       renderDriverList();
       renderAllComplaints();
@@ -500,7 +527,7 @@ function showDriverDetail(driverId) {
     .sort(function (a, b) { return new Date(b['受付日時']) - new Date(a['受付日時']); });
 
   document.getElementById('driverComplaintsBody').innerHTML = related.map(complaintRow).join('') ||
-    '<tr><td class="p-3 text-gray-400" colspan="8">クレーム履歴はありません</td></tr>';
+    '<tr><td class="p-3 text-gray-400" colspan="9">クレーム履歴はありません</td></tr>';
 }
 
 function complaintRow(c) {
@@ -510,10 +537,16 @@ function complaintRow(c) {
     '<td class="p-3 border-b">' + c['内容詳細'] + '</td>' +
     '<td class="p-3 border-b">' + severityBadge(c['重要度']) + '</td>' +
     '<td class="p-3 border-b">' + statusBadge(c['ステータス']) + '</td>' +
+    '<td class="p-3 border-b">' + caseLink(c['案件ID']) + '</td>' +
     '<td class="p-3 border-b">' + (c['登録者'] || '') + '</td>' +
     '<td class="p-3 border-b">' + (c['最終更新者'] || '') + '</td>' +
     '<td class="p-3 border-b">' + statusChangeButtons(c['ID'], c['ステータス']) + '</td>' +
     '</tr>';
+}
+
+function caseLink(caseId) {
+  if (!caseId) return '<span class="text-gray-400">未設定</span>';
+  return '<button class="text-blue-600 hover:underline" onclick="showCaseDetail(\'' + caseId + '\')">' + caseId + '</button>';
 }
 
 function statusChangeButtons(id, current) {
@@ -556,11 +589,12 @@ function renderAllComplaints() {
       '<td class="p-3 border-b">' + c['内容詳細'] + '</td>' +
       '<td class="p-3 border-b">' + severityBadge(c['重要度']) + '</td>' +
       '<td class="p-3 border-b">' + statusBadge(c['ステータス']) + '</td>' +
+      '<td class="p-3 border-b">' + caseLink(c['案件ID']) + '</td>' +
       '<td class="p-3 border-b">' + (c['登録者'] || '') + '</td>' +
       '<td class="p-3 border-b">' + (c['最終更新者'] || '') + '</td>' +
       '<td class="p-3 border-b">' + statusChangeButtons(c['ID'], c['ステータス']) + '</td>' +
       '</tr>';
-  }).join('') || '<tr><td class="p-3 text-gray-400" colspan="9">該当するクレームはありません</td></tr>';
+  }).join('') || '<tr><td class="p-3 text-gray-400" colspan="10">該当するクレームはありません</td></tr>';
 }
 
 // 統計レポート
@@ -647,6 +681,85 @@ function selectFormDriver(driverId) {
   document.getElementById('formDriverSuggestions').classList.add('hidden');
 }
 
+function setupCaseAutocomplete() {
+  var input = document.getElementById('formCaseSearchInput');
+  var suggestions = document.getElementById('formCaseSuggestions');
+
+  input.addEventListener('input', function () {
+    document.getElementById('formCaseId').value = '';
+    document.getElementById('formCaseSelected').textContent = '';
+    var keyword = input.value.trim();
+    if (!keyword) {
+      suggestions.classList.add('hidden');
+      suggestions.innerHTML = '';
+      return;
+    }
+    var matches = casesData.filter(function (c) {
+      return String(c['案件ID'] || '').includes(keyword) ||
+        String(c['店舗名'] || '').includes(keyword) ||
+        String(c['陸送先'] || '').includes(keyword) ||
+        String(c['企業名'] || '').includes(keyword);
+    }).slice(0, 10);
+
+    if (matches.length === 0) {
+      suggestions.innerHTML = '<div class="p-2 text-sm text-gray-400">該当する案件がありません</div>';
+    } else {
+      suggestions.innerHTML = matches.map(function (c) {
+        return '<div class="p-2 text-sm cursor-pointer hover:bg-gray-50" onclick="selectFormCase(\'' + c['案件ID'] + '\')">' +
+          c['案件ID'] + '　' + (c['店舗名'] || '') + '　→　' + (c['陸送先'] || '') + '</div>';
+      }).join('');
+    }
+    suggestions.classList.remove('hidden');
+  });
+}
+
+function selectFormCase(caseId) {
+  var c = casesData.find(function (x) { return String(x['案件ID']) === String(caseId); });
+  if (!c) return;
+  document.getElementById('formCaseId').value = c['案件ID'];
+  document.getElementById('formCaseSearchInput').value = c['案件ID'];
+  document.getElementById('formCaseSelected').textContent = '選択中: ' + c['案件ID'] + '　' + (c['店舗名'] || '') + '　→　' + (c['陸送先'] || '');
+  document.getElementById('formCaseSuggestions').classList.add('hidden');
+
+  // 案件に紐づくドライバーが分かる場合は自動入力する（手動で変更も可能）
+  if (c['ドライバーID']) {
+    var d = driversData.find(function (x) { return String(x['ID']) === String(c['ドライバーID']); });
+    if (d) {
+      selectFormDriver(d['ID']);
+    }
+  }
+}
+
+var CASE_FIELDS = [
+  '企業コード', '企業名', '案件ID', '陸送案件登録日時', '案件ステータス',
+  '募集終了日時', '引取開始日時', '引取終了日時', '契約日', '業務開始日時',
+  '現地到着日時', '陸送開始日時', '陸送到着日時', '受領担当者', '更新日時',
+  '陸送案件登録者', '引取先お客様名カナ(姓)', '引取先お客様名カナ(名)',
+  '引取先お客様電話番号', '引取先住所', '陸送先郵便番号', '陸送先', '担当者',
+  'リクエスターユーザーID', '店舗名', '概算距離(m)', '陸送費(税別)',
+  'ドライバー報酬', '車体番号', '車名', 'ナンバープレート', 'ハンドル位置',
+  'トランスミッション', 'ドライバーID', 'ドライバー名', 'ドライバーユーザーID',
+  'キャンセル日時', 'キャンセル種別'
+];
+
+function showCaseDetail(caseId) {
+  var c = casesData.find(function (x) { return String(x['案件ID']) === String(caseId); });
+  var body = document.getElementById('caseDetailBody');
+  if (!c) {
+    body.innerHTML = '<tr><td class="p-3 text-gray-400">該当する案件情報が見つかりません（案件マスタが未更新の可能性があります）</td></tr>';
+  } else {
+    body.innerHTML = CASE_FIELDS.map(function (f) {
+      return '<tr><td class="p-2 border bg-gray-50 font-medium whitespace-nowrap">' + f + '</td>' +
+        '<td class="p-2 border break-all">' + (c[f] || '') + '</td></tr>';
+    }).join('');
+  }
+  document.getElementById('caseDetailModal').classList.remove('hidden');
+}
+
+document.getElementById('caseDetailCloseBtn').addEventListener('click', function () {
+  document.getElementById('caseDetailModal').classList.add('hidden');
+});
+
 document.getElementById('complaintSubmitBtn').addEventListener('click', function () {
   var driverId = document.getElementById('formDriverId').value;
   var occurredAt = document.getElementById('formOccurredAt').value;
@@ -666,6 +779,7 @@ document.getElementById('complaintSubmitBtn').addEventListener('click', function
       action: 'addComplaint',
       data: {
         driverId: driverId,
+        caseId: document.getElementById('formCaseId').value,
         occurredAt: occurredAt,
         category: category,
         detail: detail,
@@ -681,6 +795,9 @@ document.getElementById('complaintSubmitBtn').addEventListener('click', function
         document.getElementById('formDriverSearchInput').value = '';
         document.getElementById('formDriverId').value = '';
         document.getElementById('formDriverSelected').textContent = '';
+        document.getElementById('formCaseSearchInput').value = '';
+        document.getElementById('formCaseId').value = '';
+        document.getElementById('formCaseSelected').textContent = '';
         loadAll();
       } else {
         alert('登録に失敗しました: ' + (data.message || ''));
@@ -698,6 +815,7 @@ setInterval(function () {
 }, 30000);
 
 setupDriverAutocomplete();
+setupCaseAutocomplete();
 init();
 </script>
 </body>
