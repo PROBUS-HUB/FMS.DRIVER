@@ -35,6 +35,7 @@
   .z-50 { z-index: 50; }
   .cursor-pointer { cursor: pointer; }
   .col-span-3 { grid-column: span 3 / span 3; }
+  .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
   .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -212,7 +213,7 @@
       </section>
       <section id="driverDetailSection" class="bg-white rounded-lg shadow p-6 hidden">
         <h2 class="text-lg font-bold border-b pb-2 mb-4">ドライバー詳細</h2>
-        <div id="driverDetailArea" class="grid grid-cols-2 gap-x-10 gap-y-5 mb-6"></div>
+        <div id="driverDetailArea" class="grid grid-cols-1 gap-y-4 mb-6"></div>
         <h3 class="text-md font-bold border-b pb-2 mb-4">このドライバーのクレーム履歴</h3>
         <table class="w-full text-left border-collapse text-sm">
           <thead>
