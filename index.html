@@ -30,7 +30,9 @@
   .max-w-md { max-width: 28rem; }
   .max-w-lg { max-width: 32rem; }
   .overflow-hidden { overflow: hidden; }
+  .overflow-x-auto { overflow-x: auto; }
   .overflow-y-auto { overflow-y: auto; }
+  .whitespace-nowrap { white-space: nowrap; }
   .fixed { position: fixed; }
   .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
   .z-50 { z-index: 50; }
@@ -214,7 +216,12 @@
       </section>
       <section id="driverDetailSection" class="bg-white rounded-lg shadow p-6 hidden">
         <h2 class="text-lg font-bold border-b pb-2 mb-4">ドライバー詳細</h2>
-        <div id="driverDetailArea" class="grid grid-cols-1 gap-y-4 mb-6"></div>
+        <div class="overflow-x-auto mb-6">
+          <table id="driverDetailTable" class="border-collapse text-sm">
+            <thead><tr id="driverDetailHeaderRow"></tr></thead>
+            <tbody><tr id="driverDetailValueRow"></tr></tbody>
+          </table>
+        </div>
         <h3 class="text-md font-bold border-b pb-2 mb-4">このドライバーのクレーム履歴</h3>
         <table class="w-full text-left border-collapse text-sm">
           <thead>
@@ -479,21 +486,21 @@ function showDriverDetail(driverId) {
   var d = driversData.find(function (x) { return String(x['ID']) === String(driverId); });
   if (!d) return;
   document.getElementById('driverDetailSection').classList.remove('hidden');
-  document.getElementById('driverDetailArea').innerHTML =
-    field('名前', d['名前']) + field('ID', d['ID']) +
-    field('アカウントステータス', d['アカウントステータス']) + field('電話番号', d['電話番号']) +
-    field('メールアドレス', d['メールアドレス']) + field('登録日時', formatDate(d['登録日時'])) +
-    field('最終ログイン日時', formatDate(d['最終ログイン日時']));
+
+  var fields = ['名前', 'ID', 'アカウントステータス', '電話番号', 'メールアドレス', '登録日時', '最終ログイン日時'];
+  document.getElementById('driverDetailHeaderRow').innerHTML = fields.map(function (f) {
+    return '<th class="p-3 border bg-gray-50 whitespace-nowrap">' + f + '</th>';
+  }).join('');
+  document.getElementById('driverDetailValueRow').innerHTML = fields.map(function (f) {
+    var v = (f === '登録日時' || f === '最終ログイン日時') ? formatDate(d[f]) : d[f];
+    return '<td class="p-3 border whitespace-nowrap">' + (v || '') + '</td>';
+  }).join('');
 
   var related = complaintsData.filter(function (c) { return String(c['ドライバーID']) === String(driverId); })
     .sort(function (a, b) { return new Date(b['受付日時']) - new Date(a['受付日時']); });
 
   document.getElementById('driverComplaintsBody').innerHTML = related.map(complaintRow).join('') ||
     '<tr><td class="p-3 text-gray-400" colspan="8">クレーム履歴はありません</td></tr>';
-}
-
-function field(label, value) {
-  return '<div class="flex items-center border-b py-2"><p class="text-sm text-gray-500 w-40">' + label + '</p><p class="font-medium text-lg break-all">' + (value || '') + '</p></div>';
 }
 
 function complaintRow(c) {
