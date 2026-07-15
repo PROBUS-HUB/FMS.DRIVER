@@ -430,10 +430,19 @@ document.querySelectorAll('.tab-btn').forEach(function (btn) {
   });
 });
 
-document.getElementById('refreshBtn').addEventListener('click', loadAll);
+document.getElementById('refreshBtn').addEventListener('click', function () {
+  var btn = this;
+  var original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '更新中...';
+  loadAll().finally(function () {
+    btn.disabled = false;
+    btn.textContent = original;
+  });
+});
 
 function loadAll() {
-  fetch(API_URL + '?action=getAll')
+  return fetch(API_URL + '?action=getAll')
     .then(function (res) { return res.json(); })
     .then(function (data) {
       if (!data.success) {
@@ -697,15 +706,6 @@ function selectFormDriver(driverId) {
   document.getElementById('formDriverSuggestions').classList.add('hidden');
 }
 
-function isWithinPastMonths(dateValue, months) {
-  if (!dateValue) return false;
-  var d = new Date(dateValue);
-  if (isNaN(d.getTime())) return false;
-  var threshold = new Date();
-  threshold.setMonth(threshold.getMonth() - months);
-  return d >= threshold;
-}
-
 function setupCaseAutocomplete() {
   var input = document.getElementById('formCaseSearchInput');
   var suggestions = document.getElementById('formCaseSuggestions');
@@ -719,12 +719,8 @@ function setupCaseAutocomplete() {
       suggestions.innerHTML = '';
       return;
     }
-    // 検索候補は直近3か月に登録された案件のみを対象とする
-    // （記録済みのクレームと案件詳細は、この絞り込みの影響を受けず引き続き参照できる）
-    var recentCases = casesData.filter(function (c) {
-      return isWithinPastMonths(c['陸送案件登録日時'], 3);
-    });
-    var matches = recentCases.filter(function (c) {
+    // casesDataはサーバー側で既に直近3か月分に絞り込まれている
+    var matches = casesData.filter(function (c) {
       return String(c['案件ID'] || '').includes(keyword) ||
         String(c['店舗名'] || '').includes(keyword) ||
         String(c['陸送先'] || '').includes(keyword) ||
@@ -773,17 +769,39 @@ var CASE_FIELDS = [
 ];
 
 function showCaseDetail(caseId) {
-  var c = casesData.find(function (x) { return String(x['案件ID']) === String(caseId); });
   var body = document.getElementById('caseDetailBody');
-  if (!c) {
-    body.innerHTML = '<tr><td class="p-3 text-gray-400">該当する案件情報が見つかりません（案件マスタが未更新の可能性があります）</td></tr>';
-  } else {
-    body.innerHTML = CASE_FIELDS.map(function (f) {
-      return '<tr><td class="p-2 border bg-gray-50 font-medium whitespace-nowrap">' + f + '</td>' +
-        '<td class="p-2 border break-all">' + (c[f] || '') + '</td></tr>';
-    }).join('');
-  }
   document.getElementById('caseDetailModal').classList.remove('hidden');
+
+  var local = casesData.find(function (x) { return String(x['案件ID']) === String(caseId); });
+  if (local) {
+    renderCaseDetailTable(local);
+    return;
+  }
+
+  // 直近3か月に含まれない古い案件は、その都度サーバーへ個別取得する
+  body.innerHTML = '<tr><td class="p-3 text-gray-400">読み込み中です...</td></tr>';
+  fetch(API_URL + '?action=getCase&caseId=' + encodeURIComponent(caseId))
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      if (data.success && data.caseData) {
+        casesData.push(data.caseData);
+        renderCaseDetailTable(data.caseData);
+      } else {
+        body.innerHTML = '<tr><td class="p-3 text-gray-400">' + (data.message || '該当する案件情報が見つかりません') + '</td></tr>';
+      }
+    })
+    .catch(function (err) {
+      body.innerHTML = '<tr><td class="p-3 text-gray-400">通信エラーが発生しました</td></tr>';
+      console.error(err);
+    });
+}
+
+function renderCaseDetailTable(c) {
+  var body = document.getElementById('caseDetailBody');
+  body.innerHTML = CASE_FIELDS.map(function (f) {
+    return '<tr><td class="p-2 border bg-gray-50 font-medium whitespace-nowrap">' + f + '</td>' +
+      '<td class="p-2 border break-all">' + (c[f] || '') + '</td></tr>';
+  }).join('');
 }
 
 document.getElementById('caseDetailCloseBtn').addEventListener('click', function () {
