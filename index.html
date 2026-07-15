@@ -719,7 +719,7 @@ function setupCaseAutocomplete() {
       suggestions.innerHTML = '';
       return;
     }
-    // casesDataはサーバー側で既に直近3か月分に絞り込まれている
+    // casesDataはサーバー側で既に直近2か月分に絞り込まれている
     var matches = casesData.filter(function (c) {
       return String(c['案件ID'] || '').includes(keyword) ||
         String(c['店舗名'] || '').includes(keyword) ||
@@ -728,7 +728,7 @@ function setupCaseAutocomplete() {
     }).slice(0, 10);
 
     if (matches.length === 0) {
-      suggestions.innerHTML = '<div class="p-2 text-sm text-gray-400">直近3か月以内に該当する案件がありません</div>';
+      suggestions.innerHTML = '<div class="p-2 text-sm text-gray-400">直近2か月以内に該当する案件がありません</div>';
     } else {
       suggestions.innerHTML = matches.map(function (c) {
         return '<div class="p-2 text-sm cursor-pointer hover:bg-gray-50" onclick="selectFormCase(\'' + c['案件ID'] + '\')">' +
@@ -778,7 +778,7 @@ function showCaseDetail(caseId) {
     return;
   }
 
-  // 直近3か月に含まれない古い案件は、その都度サーバーへ個別取得する
+  // 直近2か月に含まれない古い案件は、その都度サーバーへ個別取得する
   body.innerHTML = '<tr><td class="p-3 text-gray-400">読み込み中です...</td></tr>';
   fetch(API_URL + '?action=getCase&caseId=' + encodeURIComponent(caseId))
     .then(function (res) { return res.json(); })
