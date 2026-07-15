@@ -32,6 +32,34 @@
   .max-w-md { max-width: 28rem; }
   .max-w-lg { max-width: 32rem; }
   .max-w-4xl { max-width: 56rem; }
+  .max-w-6xl { max-width: 72rem; }
+  .case-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .case-group {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+  .case-group h3 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.375rem;
+    margin-bottom: 0.5rem;
+  }
+  .case-field-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.2rem 0;
+    font-size: 0.8rem;
+  }
+  .case-field-row .label { color: #6b7280; flex-shrink: 0; }
+  .case-field-row .value { text-align: right; word-break: break-all; }
   .overflow-hidden { overflow: hidden; }
   .overflow-x-auto { overflow-x: auto; }
   .overflow-y-auto { overflow-y: auto; }
@@ -357,16 +385,12 @@
 
 <!-- 案件詳細モーダル -->
 <div id="caseDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-6xl" style="max-height: 90vh; overflow-y: auto;">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-lg font-bold">案件詳細</h2>
       <button id="caseDetailCloseBtn" class="px-3 py-1 border border-gray-300 rounded">閉じる</button>
     </div>
-    <div class="overflow-x-auto" style="max-height: 70vh; overflow-y: auto;">
-      <table class="border-collapse text-sm">
-        <tbody id="caseDetailBody"></tbody>
-      </table>
-    </div>
+    <div id="caseDetailBody" class="case-detail-grid"></div>
   </div>
 </div>
 
@@ -756,16 +780,39 @@ function selectFormCase(caseId) {
   }
 }
 
-var CASE_FIELDS = [
-  '企業コード', '企業名', '案件ID', '陸送案件登録日時', '案件ステータス',
-  '募集終了日時', '引取開始日時', '引取終了日時', '契約日', '業務開始日時',
-  '現地到着日時', '陸送開始日時', '陸送到着日時', '受領担当者', '更新日時',
-  '陸送案件登録者', '引取先お客様名カナ(姓)', '引取先お客様名カナ(名)',
-  '引取先お客様電話番号', '引取先住所', '陸送先郵便番号', '陸送先', '担当者',
-  'リクエスターユーザーID', '店舗名', '概算距離(m)', '陸送費(税別)',
-  'ドライバー報酬', '車体番号', '車名', 'ナンバープレート', 'ハンドル位置',
-  'トランスミッション', 'ドライバーID', 'ドライバー名', 'ドライバーユーザーID',
-  'キャンセル日時', 'キャンセル種別'
+var CASE_GROUPS = [
+  {
+    title: '基本情報',
+    fields: ['案件ID', '案件ステータス', '企業コード', '企業名', '陸送案件登録日時', '陸送案件登録者', '受領担当者', '担当者', '更新日時']
+  },
+  {
+    title: '日程',
+    fields: ['募集終了日時', '引取開始日時', '引取終了日時', '契約日', '業務開始日時', '現地到着日時', '陸送開始日時', '陸送到着日時']
+  },
+  {
+    title: '引取先情報',
+    fields: ['引取先お客様名カナ(姓)', '引取先お客様名カナ(名)', '引取先お客様電話番号', '引取先住所']
+  },
+  {
+    title: '陸送先情報',
+    fields: ['店舗名', '陸送先郵便番号', '陸送先', 'リクエスターユーザーID', '概算距離(m)']
+  },
+  {
+    title: '費用',
+    fields: ['陸送費(税別)', 'ドライバー報酬']
+  },
+  {
+    title: '車両情報',
+    fields: ['車体番号', '車名', 'ナンバープレート', 'ハンドル位置', 'トランスミッション']
+  },
+  {
+    title: 'ドライバー情報',
+    fields: ['ドライバーID', 'ドライバー名', 'ドライバーユーザーID']
+  },
+  {
+    title: 'キャンセル情報',
+    fields: ['キャンセル日時', 'キャンセル種別']
+  }
 ];
 
 function showCaseDetail(caseId) {
@@ -779,7 +826,7 @@ function showCaseDetail(caseId) {
   }
 
   // 直近2か月に含まれない古い案件は、その都度サーバーへ個別取得する
-  body.innerHTML = '<tr><td class="p-3 text-gray-400">読み込み中です...</td></tr>';
+  body.innerHTML = '<div class="text-gray-400 text-sm">読み込み中です...</div>';
   fetch(API_URL + '?action=getCase&caseId=' + encodeURIComponent(caseId))
     .then(function (res) { return res.json(); })
     .then(function (data) {
@@ -787,20 +834,22 @@ function showCaseDetail(caseId) {
         casesData.push(data.caseData);
         renderCaseDetailTable(data.caseData);
       } else {
-        body.innerHTML = '<tr><td class="p-3 text-gray-400">' + (data.message || '該当する案件情報が見つかりません') + '</td></tr>';
+        body.innerHTML = '<div class="text-gray-400 text-sm">' + (data.message || '該当する案件情報が見つかりません') + '</div>';
       }
     })
     .catch(function (err) {
-      body.innerHTML = '<tr><td class="p-3 text-gray-400">通信エラーが発生しました</td></tr>';
+      body.innerHTML = '<div class="text-gray-400 text-sm">通信エラーが発生しました</div>';
       console.error(err);
     });
 }
 
 function renderCaseDetailTable(c) {
   var body = document.getElementById('caseDetailBody');
-  body.innerHTML = CASE_FIELDS.map(function (f) {
-    return '<tr><td class="p-2 border bg-gray-50 font-medium whitespace-nowrap">' + f + '</td>' +
-      '<td class="p-2 border break-all">' + (c[f] || '') + '</td></tr>';
+  body.innerHTML = CASE_GROUPS.map(function (group) {
+    var rows = group.fields.map(function (f) {
+      return '<div class="case-field-row"><span class="label">' + f + '</span><span class="value">' + (c[f] || '－') + '</span></div>';
+    }).join('');
+    return '<div class="case-group"><h3>' + group.title + '</h3>' + rows + '</div>';
   }).join('');
 }
 
