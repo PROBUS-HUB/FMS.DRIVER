@@ -60,6 +60,22 @@
   }
   .case-field-row .label { color: #6b7280; flex-shrink: 0; }
   .case-field-row .value { text-align: right; word-break: break-all; }
+  .case-complaint-item {
+    border-bottom: 1px solid #f3f4f6;
+    padding: 0.5rem 0;
+    font-size: 0.8rem;
+  }
+  .case-complaint-item:last-child { border-bottom: none; }
+  .case-complaint-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+  .case-complaint-detail {
+    color: #4b5563;
+    margin-top: 0.25rem;
+  }
   .overflow-hidden { overflow: hidden; }
   .overflow-x-auto { overflow-x: auto; }
   .overflow-y-auto { overflow-y: auto; }
@@ -270,6 +286,7 @@
               <th class="p-3 border-b">案件</th>
               <th class="p-3 border-b">受付担当</th>
               <th class="p-3 border-b">最終更新担当</th>
+              <th class="p-3 border-b">担当交代履歴</th>
               <th class="p-3 border-b">操作</th>
             </tr>
           </thead>
@@ -302,6 +319,7 @@
               <th class="p-3 border-b">案件</th>
               <th class="p-3 border-b">受付担当</th>
               <th class="p-3 border-b">最終更新担当</th>
+              <th class="p-3 border-b">担当交代履歴</th>
               <th class="p-3 border-b">操作</th>
             </tr>
           </thead>
@@ -394,13 +412,40 @@
   </div>
 </div>
 
+<!-- エスカレーション履歴モーダル -->
+<div id="escalationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg" style="max-height: 85vh; overflow-y: auto;">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-bold">担当交代の履歴</h2>
+      <button id="escalationCloseBtn" class="px-3 py-1 border border-gray-300 rounded">閉じる</button>
+    </div>
+    <div id="escalationTimeline" class="space-y-3 mb-6"></div>
+    <div class="border-t pt-4 space-y-3">
+      <h3 class="text-sm font-bold text-gray-700">新しく担当が変わったことを記録する</h3>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">エスカレーション先の担当者</label>
+        <input id="escalationStaffInput" type="text" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="担当者名を入力">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">備考（任意）</label>
+        <textarea id="escalationNoteInput" rows="2" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="エスカレーションの理由など"></textarea>
+      </div>
+      <div class="flex justify-end">
+        <button id="escalationSubmitBtn" class="px-6 py-2 bg-blue-600 text-white rounded font-bold">記録する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 var API_URL = '';
 var STAFF_NAME = '';
 var driversData = [];
 var complaintsData = [];
 var casesData = [];
+var escalationsData = [];
 var currentDriverId = null;
+var currentEscalationComplaintId = null;
 
 function init() {
   API_URL = localStorage.getItem('claim_api_url') || '';
@@ -476,6 +521,7 @@ function loadAll() {
       driversData = data.drivers || [];
       complaintsData = data.complaints || [];
       casesData = data.cases || [];
+      escalationsData = data.escalations || [];
       renderDashboard();
       renderDriverList();
       renderAllComplaints();
@@ -567,7 +613,7 @@ function showDriverDetail(driverId) {
     .sort(function (a, b) { return new Date(b['受付日時']) - new Date(a['受付日時']); });
 
   document.getElementById('driverComplaintsBody').innerHTML = related.map(complaintRow).join('') ||
-    '<tr><td class="p-3 text-gray-400" colspan="9">クレーム履歴はありません</td></tr>';
+    '<tr><td class="p-3 text-gray-400" colspan="10">クレーム履歴はありません</td></tr>';
 }
 
 function complaintRow(c) {
@@ -580,8 +626,15 @@ function complaintRow(c) {
     '<td class="p-3 border-b">' + caseLink(c['案件ID']) + '</td>' +
     '<td class="p-3 border-b">' + (c['登録者'] || '') + '</td>' +
     '<td class="p-3 border-b">' + (c['最終更新者'] || '') + '</td>' +
+    '<td class="p-3 border-b">' + escalationButton(c['ID']) + '</td>' +
     '<td class="p-3 border-b">' + statusChangeButtons(c['ID'], c['ステータス']) + '</td>' +
     '</tr>';
+}
+
+function escalationButton(complaintId) {
+  var count = escalationsData.filter(function (e) { return String(e['クレームID']) === String(complaintId); }).length;
+  var label = count > 0 ? '履歴（' + count + '）' : '記録する';
+  return '<button class="text-blue-600 hover:underline text-xs" onclick="showEscalationModal(\'' + complaintId + '\')">' + label + '</button>';
 }
 
 function caseLink(caseId) {
@@ -641,9 +694,10 @@ function renderAllComplaints() {
       '<td class="p-3 border-b">' + caseLink(c['案件ID']) + '</td>' +
       '<td class="p-3 border-b">' + (c['登録者'] || '') + '</td>' +
       '<td class="p-3 border-b">' + (c['最終更新者'] || '') + '</td>' +
+      '<td class="p-3 border-b">' + escalationButton(c['ID']) + '</td>' +
       '<td class="p-3 border-b">' + statusChangeButtons(c['ID'], c['ステータス']) + '</td>' +
       '</tr>';
-  }).join('') || '<tr><td class="p-3 text-gray-400" colspan="10">該当するクレームはありません</td></tr>';
+  }).join('') || '<tr><td class="p-3 text-gray-400" colspan="11">該当するクレームはありません</td></tr>';
 }
 
 // 統計レポート
@@ -845,16 +899,98 @@ function showCaseDetail(caseId) {
 
 function renderCaseDetailTable(c) {
   var body = document.getElementById('caseDetailBody');
-  body.innerHTML = CASE_GROUPS.map(function (group) {
+  var groupsHtml = CASE_GROUPS.map(function (group) {
     var rows = group.fields.map(function (f) {
       return '<div class="case-field-row"><span class="label">' + f + '</span><span class="value">' + (c[f] || '－') + '</span></div>';
     }).join('');
     return '<div class="case-group"><h3>' + group.title + '</h3>' + rows + '</div>';
   }).join('');
+
+  var related = complaintsData.filter(function (cm) { return String(cm['案件ID']) === String(c['案件ID']); })
+    .sort(function (a, b) { return new Date(b['受付日時']) - new Date(a['受付日時']); });
+
+  var relatedHtml = related.map(function (cm) {
+    var driver = driversData.find(function (d) { return String(d['ID']) === String(cm['ドライバーID']); });
+    return '<div class="case-complaint-item">' +
+      '<div class="case-complaint-head">' +
+        '<span>' + formatDate(cm['受付日時']) + '　' + cm['種別'] + '　（' + (driver ? driver['名前'] : cm['ドライバーID']) + '）</span>' +
+        '<span>' + statusBadge(cm['ステータス']) + '　' + escalationButton(cm['ID']) + '</span>' +
+      '</div>' +
+      '<div class="case-complaint-detail">' + cm['内容詳細'] + '</div>' +
+      '</div>';
+  }).join('') || '<div class="text-sm text-gray-400">この案件に紐づくクレームはありません</div>';
+
+  var complaintsSection = '<div class="case-group" style="grid-column: 1 / -1;">' +
+    '<h3>この案件で発生したクレーム（' + related.length + '件）</h3>' + relatedHtml + '</div>';
+
+  body.innerHTML = groupsHtml + complaintsSection;
 }
 
-document.getElementById('caseDetailCloseBtn').addEventListener('click', function () {
-  document.getElementById('caseDetailModal').classList.add('hidden');
+function showEscalationModal(complaintId) {
+  currentEscalationComplaintId = complaintId;
+  renderEscalationTimeline();
+  document.getElementById('escalationStaffInput').value = '';
+  document.getElementById('escalationNoteInput').value = '';
+  document.getElementById('escalationModal').classList.remove('hidden');
+}
+
+function renderEscalationTimeline() {
+  var list = escalationsData
+    .filter(function (e) { return String(e['クレームID']) === String(currentEscalationComplaintId); })
+    .sort(function (a, b) { return new Date(a['エスカレーション日時']) - new Date(b['エスカレーション日時']); });
+
+  var timeline = document.getElementById('escalationTimeline');
+  if (list.length === 0) {
+    timeline.innerHTML = '<p class="text-sm text-gray-400">まだ担当交代の記録はありません</p>';
+    return;
+  }
+  timeline.innerHTML = list.map(function (e, idx) {
+    return '<div class="border-l-2 border-blue-300 pl-3">' +
+      '<p class="text-xs text-gray-500">' + formatDate(e['エスカレーション日時']) + '</p>' +
+      '<p class="font-medium">' + (idx + 1) + '. ' + e['担当者'] + ' が対応</p>' +
+      (e['備考'] ? '<p class="text-sm text-gray-600">' + e['備考'] + '</p>' : '') +
+      '<p class="text-xs text-gray-400">記録者: ' + (e['記録者'] || '') + '</p>' +
+      '</div>';
+  }).join('');
+}
+
+document.getElementById('escalationCloseBtn').addEventListener('click', function () {
+  document.getElementById('escalationModal').classList.add('hidden');
+});
+
+document.getElementById('escalationSubmitBtn').addEventListener('click', function () {
+  var staffName = document.getElementById('escalationStaffInput').value.trim();
+  var note = document.getElementById('escalationNoteInput').value.trim();
+  if (!staffName) {
+    alert('エスカレーション先の担当者名を入力してください');
+    return;
+  }
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({
+      action: 'addEscalation',
+      data: {
+        complaintId: currentEscalationComplaintId,
+        staffName: staffName,
+        note: note,
+        recordedBy: STAFF_NAME
+      }
+    })
+  }).then(function (res) { return res.json(); })
+    .then(function (data) {
+      if (data.success) {
+        document.getElementById('escalationStaffInput').value = '';
+        document.getElementById('escalationNoteInput').value = '';
+        loadAll().then(renderEscalationTimeline);
+      } else {
+        alert('記録に失敗しました: ' + (data.message || ''));
+      }
+    })
+    .catch(function (err) {
+      alert('通信エラーが発生しました');
+      console.error(err);
+    });
 });
 
 document.getElementById('complaintSubmitBtn').addEventListener('click', function () {
